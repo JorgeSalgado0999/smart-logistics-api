@@ -20,7 +20,7 @@ export class InMemoryGraphRepository extends GraphRepository {
     }
   }
 
-  save(graph: Graph): void {
+  save(graph: Graph): Promise<void> {
     this.graphs.delete(graph.id);
     this.graphs.set(graph.id, freezeCopy(graph));
 
@@ -28,10 +28,11 @@ export class InMemoryGraphRepository extends GraphRepository {
       const oldestId = this.graphs.keys().next().value as string;
       this.graphs.delete(oldestId);
     }
+    return Promise.resolve();
   }
 
-  findById(id: string): Graph | undefined {
-    return this.graphs.get(id);
+  findById(id: string): Promise<Graph | undefined> {
+    return Promise.resolve(this.graphs.get(id));
   }
 }
 

@@ -5,8 +5,8 @@ import type { Graph } from '../../domain/graph.types.js';
  * an in-memory store can be swapped for a database later.
  */
 export abstract class GraphRepository {
-  abstract save(graph: Graph): void;
-  abstract findById(id: string): Graph | undefined;
+  abstract save(graph: Graph): Promise<void>;
+  abstract findById(id: string): Promise<Graph | undefined>;
 }
 
 /** DI token for how many graphs the in-memory store keeps. */

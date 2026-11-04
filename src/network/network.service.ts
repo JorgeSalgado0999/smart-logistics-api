@@ -9,7 +9,7 @@ export class NetworkService {
   constructor(private readonly graphs: GraphRepository) {}
 
   /** Stores a new graph and returns its id. */
-  upload(dto: UploadNetworkDto): string {
+  async upload(dto: UploadNetworkDto): Promise<string> {
     const edges: Edge[] = dto.edges.map((edge) => ({
       from: edge.from,
       to: edge.to,
@@ -25,13 +25,13 @@ export class NetworkService {
       edges,
       createdAt: new Date(),
     };
-    this.graphs.save(graph);
+    await this.graphs.save(graph);
     return graph.id;
   }
 
   /** Returns the graph, or throws 404 if it doesn't exist or was evicted. */
-  getGraph(id: string): Graph {
-    const graph = this.graphs.findById(id);
+  async getGraph(id: string): Promise<Graph> {
+    const graph = await this.graphs.findById(id);
     if (!graph) {
       throw new NotFoundException(`Network ${id} not found`);
     }

@@ -84,8 +84,10 @@ export class NetworkController {
   })
   @ApiCreatedResponse({ type: UploadNetworkResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid graph definition' })
-  upload(@Body() dto: UploadNetworkDto): UploadNetworkResponseDto {
-    return { id: this.network.upload(dto) };
+  async upload(
+    @Body() dto: UploadNetworkDto,
+  ): Promise<UploadNetworkResponseDto> {
+    return { id: await this.network.upload(dto) };
   }
 
   @Get('nodes/:id')
@@ -94,10 +96,10 @@ export class NetworkController {
   @ApiOkResponse({ type: NetworkNodesResponseDto })
   @ApiBadRequestResponse({ description: 'Id is not a UUID' })
   @ApiNotFoundResponse({ description: 'Graph not found or evicted' })
-  getNodes(
+  async getNodes(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-  ): NetworkNodesResponseDto {
-    const graph = this.network.getGraph(id);
+  ): Promise<NetworkNodesResponseDto> {
+    const graph = await this.network.getGraph(id);
     return {
       graphId: graph.id,
       nodes: graph.nodes.map((node) => ({ id: node.id })),

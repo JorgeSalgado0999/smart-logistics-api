@@ -9,8 +9,8 @@ describe('NetworkService', () => {
     service = new NetworkService(new InMemoryGraphRepository(5));
   });
 
-  it('derives unique nodes in order of first appearance', () => {
-    const id = service.upload({
+  it('derives unique nodes in order of first appearance', async () => {
+    const id = await service.upload({
       edges: [
         { from: 'C', to: 'A', cost: 1 },
         { from: 'A', to: 'B', cost: 1 },
@@ -18,17 +18,19 @@ describe('NetworkService', () => {
       ],
     });
 
-    expect(service.getGraph(id).nodes).toEqual([
+    expect((await service.getGraph(id)).nodes).toEqual([
       { id: 'C' },
       { id: 'A' },
       { id: 'B' },
     ]);
   });
 
-  it('fills defaults for optional edge fields', () => {
-    const id = service.upload({ edges: [{ from: 'A', to: 'B', cost: 5 }] });
+  it('fills defaults for optional edge fields', async () => {
+    const id = await service.upload({
+      edges: [{ from: 'A', to: 'B', cost: 5 }],
+    });
 
-    expect(service.getGraph(id).edges[0]).toEqual({
+    expect((await service.getGraph(id)).edges[0]).toEqual({
       from: 'A',
       to: 'B',
       cost: 5,
@@ -38,7 +40,7 @@ describe('NetworkService', () => {
     });
   });
 
-  it('keeps provided edge fields', () => {
+  it('keeps provided edge fields', async () => {
     const edge = {
       from: 'A',
       to: 'B',
@@ -47,13 +49,13 @@ describe('NetworkService', () => {
       noHazardous: true,
       trafficMultiplier: 1.5,
     };
-    const id = service.upload({ edges: [edge] });
+    const id = await service.upload({ edges: [edge] });
 
-    expect(service.getGraph(id).edges[0]).toEqual(edge);
+    expect((await service.getGraph(id)).edges[0]).toEqual(edge);
   });
 
-  it('keeps duplicate edges and self-loops', () => {
-    const id = service.upload({
+  it('keeps duplicate edges and self-loops', async () => {
+    const id = await service.upload({
       edges: [
         { from: 'A', to: 'B', cost: 1 },
         { from: 'A', to: 'B', cost: 2 },
@@ -61,14 +63,17 @@ describe('NetworkService', () => {
       ],
     });
 
-    expect(service.getGraph(id).edges).toHaveLength(3);
-    expect(service.getGraph(id).nodes).toEqual([{ id: 'A' }, { id: 'B' }]);
+    expect((await service.getGraph(id)).edges).toHaveLength(3);
+    expect((await service.getGraph(id)).nodes).toEqual([
+      { id: 'A' },
+      { id: 'B' },
+    ]);
   });
 
-  it('gives each upload a new UUID', () => {
+  it('gives each upload a new UUID', async () => {
     const dto = { edges: [{ from: 'A', to: 'B', cost: 1 }] };
-    const first = service.upload(dto);
-    const second = service.upload(dto);
+    const first = await service.upload(dto);
+    const second = await service.upload(dto);
 
     expect(first).not.toBe(second);
     expect(first).toMatch(
@@ -76,7 +81,9 @@ describe('NetworkService', () => {
     );
   });
 
-  it('throws NotFoundException for an unknown id', () => {
-    expect(() => service.getGraph('missing')).toThrow(NotFoundException);
+  it('throws NotFoundException for an unknown id', async () => {
+    await expect(service.getGraph('missing')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

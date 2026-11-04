@@ -13,54 +13,55 @@ function makeGraph(id: string): Graph {
 }
 
 describe('InMemoryGraphRepository', () => {
-  it('returns a saved graph by id', () => {
+  it('returns a saved graph by id', async () => {
     const repo = new InMemoryGraphRepository(5);
-    repo.save(makeGraph('g1'));
+    await repo.save(makeGraph('g1'));
 
-    expect(repo.findById('g1')).toEqual(makeGraph('g1'));
+    expect(await repo.findById('g1')).toEqual(makeGraph('g1'));
   });
 
-  it('returns undefined for an unknown id', () => {
+  it('returns undefined for an unknown id', async () => {
     const repo = new InMemoryGraphRepository(5);
 
-    expect(repo.findById('missing')).toBeUndefined();
+    expect(await repo.findById('missing')).toBeUndefined();
   });
 
-  it('evicts the oldest graph once capacity is exceeded', () => {
+  it('evicts the oldest graph once capacity is exceeded', async () => {
     const repo = new InMemoryGraphRepository(5);
-    for (let i = 1; i <= 6; i++) repo.save(makeGraph(`g${i}`));
+    for (let i = 1; i <= 6; i++) await repo.save(makeGraph(`g${i}`));
 
-    expect(repo.findById('g1')).toBeUndefined();
-    for (let i = 2; i <= 6; i++) expect(repo.findById(`g${i}`)).toBeDefined();
+    expect(await repo.findById('g1')).toBeUndefined();
+    for (let i = 2; i <= 6; i++)
+      expect(await repo.findById(`g${i}`)).toBeDefined();
   });
 
-  it('evicts by upload order, not by last read', () => {
+  it('evicts by upload order, not by last read', async () => {
     const repo = new InMemoryGraphRepository(2);
-    repo.save(makeGraph('g1'));
-    repo.save(makeGraph('g2'));
-    repo.findById('g1');
-    repo.save(makeGraph('g3'));
+    await repo.save(makeGraph('g1'));
+    await repo.save(makeGraph('g2'));
+    await repo.findById('g1');
+    await repo.save(makeGraph('g3'));
 
-    expect(repo.findById('g1')).toBeUndefined();
-    expect(repo.findById('g2')).toBeDefined();
+    expect(await repo.findById('g1')).toBeUndefined();
+    expect(await repo.findById('g2')).toBeDefined();
   });
 
-  it('stores a copy, so changing the input later has no effect', () => {
+  it('stores a copy, so changing the input later has no effect', async () => {
     const repo = new InMemoryGraphRepository(5);
     const graph = makeGraph('g1');
-    repo.save(graph);
+    await repo.save(graph);
 
-    (graph.edges as { cost: number }[])[0].cost = 999;
-    (graph.nodes as { id: string }[]).push({ id: 'Z' });
+    (graph.edges as unknown as { cost: number }[])[0].cost = 999;
+    (graph.nodes as unknown as { id: string }[]).push({ id: 'Z' });
 
-    expect(repo.findById('g1')?.edges[0].cost).toBe(1);
-    expect(repo.findById('g1')?.nodes).toHaveLength(2);
+    expect((await repo.findById('g1'))?.edges[0].cost).toBe(1);
+    expect((await repo.findById('g1'))?.nodes).toHaveLength(2);
   });
 
-  it('returns a frozen graph that readers cannot change', () => {
+  it('returns a frozen graph that readers cannot change', async () => {
     const repo = new InMemoryGraphRepository(5);
-    repo.save(makeGraph('g1'));
-    const stored = repo.findById('g1')!;
+    await repo.save(makeGraph('g1'));
+    const stored = (await repo.findById('g1'))!;
 
     expect(Object.isFrozen(stored)).toBe(true);
     expect(Object.isFrozen(stored.edges)).toBe(true);
