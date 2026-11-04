@@ -2,8 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
+import type { Db } from 'mongodb';
 import { AppModule } from './../src/app.module.js';
 import { configureApp } from './../src/app.setup.js';
+import { MONGO_DB } from './../src/database/mongo.module.js';
+
+/** `memory` for `npm run test:e2e`, `mongo` for `npm run test:e2e:mongo`. */
+const storage = process.env.STORAGE === 'mongo' ? 'mongo' : 'memory';
+const memoryOnly = storage === 'memory' ? it : it.skip;
+const mongoOnly = storage === 'mongo' ? it : it.skip;
 
 const README_GRAPH = {
   edges: [
@@ -53,7 +60,7 @@ const README_GRAPH = {
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
-describe('Network (e2e)', () => {
+describe(`Network (e2e, ${storage} storage)`, () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -64,11 +71,18 @@ describe('Network (e2e)', () => {
     app = moduleFixture.createNestApplication();
     configureApp(app);
     await app.init();
+    await dropTestDatabase();
   });
 
   afterEach(async () => {
+    await dropTestDatabase();
     await app.close();
   });
+
+  /** Mongo runs use a throwaway database (see test/setup/mongo-env.ts). */
+  async function dropTestDatabase(): Promise<void> {
+    if (storage === 'mongo') await app.get<Db>(MONGO_DB).dropDatabase();
+  }
 
   const upload = (body: unknown) =>
     request(app.getHttpServer())
@@ -137,7 +151,7 @@ describe('Network (e2e)', () => {
     await upload(body).expect(400);
   });
 
-  it('keeps only the last 5 graphs', async () => {
+  memoryOnly('keeps only the last 5 graphs', async () => {
     const ids: string[] = [];
     for (let i = 0; i < 6; i++) {
       const res = await upload(README_GRAPH).expect(201);
@@ -148,6 +162,20 @@ describe('Network (e2e)', () => {
       .get(`/network/nodes/${ids[0]}`)
       .expect(404);
     for (const id of ids.slice(1)) {
+      await request(app.getHttpServer())
+        .get(`/network/nodes/${id}`)
+        .expect(200);
+    }
+  });
+
+  mongoOnly('keeps every graph, with no 5-graph limit', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const res = await upload(README_GRAPH).expect(201);
+      ids.push(res.body.id as string);
+    }
+
+    for (const id of ids) {
       await request(app.getHttpServer())
         .get(`/network/nodes/${id}`)
         .expect(200);

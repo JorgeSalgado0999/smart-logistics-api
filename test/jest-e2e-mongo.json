@@ -1,0 +1,19 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "testEnvironment": "node",
+  "extensionsToTreatAsEsm": [".ts"],
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  },
+  "transform": {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "useESM": true
+      }
+    ]
+  },
+  "rootDir": ".",
+  "testRegex": "\\.(e2e|mongo)-spec\\.ts$",
+  "setupFiles": ["<rootDir>/setup/mongo-env.ts"]
+}
