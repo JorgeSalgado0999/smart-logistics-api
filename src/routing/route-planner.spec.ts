@@ -269,6 +269,21 @@ describe('planRoute', () => {
 
     expect(plan.ok && plan.result.totalCost).toBe(0.3);
   });
+
+  it('reports a totalCost equal to the sum of the rounded leg costs', () => {
+    const graph: Graph = {
+      ...README_GRAPH,
+      edges: [edge('A', 'B', 0.0000004), edge('B', 'C', 0.0000004)],
+    };
+    const plan = planRoute(
+      graph,
+      request({ waypoints: ['B'], destinationNodeId: 'C' }),
+    );
+
+    if (!plan.ok) throw new Error('expected a route');
+    expect(plan.result.legs.map((leg) => leg.cost)).toEqual([0, 0]);
+    expect(plan.result.totalCost).toBe(0);
+  });
 });
 
 describe('roundCost', () => {

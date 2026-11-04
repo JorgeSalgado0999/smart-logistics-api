@@ -139,6 +139,11 @@ describe(`Network (e2e, ${storage} storage)`, () => {
       'negative trafficMultiplier',
       { edges: [{ from: 'A', to: 'B', cost: 1, trafficMultiplier: -2 }] },
     ],
+    ['cost above 1e9', { edges: [{ from: 'A', to: 'B', cost: 1e308 }] }],
+    [
+      'trafficMultiplier above 1000',
+      { edges: [{ from: 'A', to: 'B', cost: 1, trafficMultiplier: 1e6 }] },
+    ],
     [
       'unknown edge field',
       { edges: [{ from: 'A', to: 'B', cost: 1, speed: 90 }] },

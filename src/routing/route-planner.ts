@@ -118,18 +118,20 @@ export function planRoute(graph: Graph, request: RouteRequest): RoutePlan {
     };
   }
 
+  const legs = outcome.legs.map((leg) => ({
+    from: leg.from,
+    to: leg.to,
+    path: leg.path,
+    cost: roundCost(leg.cost),
+  }));
   return {
     ok: true,
     result: {
       graphId: graph.id,
-      totalCost: roundCost(outcome.totalCost),
+      // Sum of the rounded legs, so clients can check legs add up to the total.
+      totalCost: roundCost(legs.reduce((sum, leg) => sum + leg.cost, 0)),
       path: outcome.path,
-      legs: outcome.legs.map((leg) => ({
-        from: leg.from,
-        to: leg.to,
-        path: leg.path,
-        cost: roundCost(leg.cost),
-      })),
+      legs,
     },
   };
 }

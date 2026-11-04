@@ -65,7 +65,7 @@ Invalid input returns `400` with one message per broken rule, unknown fields inc
 { "edges": [{ "from": "A", "to": "B", "cost": 10, "maxWeight": 5000, "noHazardous": true, "trafficMultiplier": 1.5 }] }
 ```
 
-- `from`, `to` and `cost` (≥ 0) are required. `maxWeight` (no limit if absent), `noHazardous` (default `false`) and `trafficMultiplier` (default `1`) are optional.
+- `from`, `to` and `cost` (0 to 1e9) are required. `maxWeight` (no limit if absent), `noHazardous` (default `false`) and `trafficMultiplier` (above 0, at most 1000, default `1`) are optional. The upper bounds keep route costs finite.
 - Edges are **directed**: `A → B` doesn't allow `B → A`.
 - Nodes come from the edges, in the order they first appear.
 
