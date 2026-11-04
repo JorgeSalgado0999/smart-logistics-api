@@ -76,7 +76,7 @@ Jest runs with `--experimental-vm-modules` because the project is ESM, so each r
 - [x] Network endpoints: `POST /network/upload`, `GET /network/nodes/{id}`
 - [x] Dijkstra's algorithm with unit tests
 - [x] MongoDB storage (optional, `STORAGE=mongo`)
-- [ ] Vehicle constraints and time-dependent edge costs
+- [x] Vehicle constraints and time-dependent edge costs
 - [ ] Multi-stop routing through waypoints
 - [ ] Async jobs: `POST /route/optimize/{id}`, `GET /route/status/{jobId}`
 - [ ] Error handling in job results
