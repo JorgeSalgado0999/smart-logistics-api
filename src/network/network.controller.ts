@@ -16,6 +16,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponseDto } from '../common/dto/error-response.dto.js';
 import { NetworkNodesResponseDto } from './dto/network-nodes-response.dto.js';
 import { UploadNetworkResponseDto } from './dto/upload-network-response.dto.js';
 import { UploadNetworkDto } from './dto/upload-network.dto.js';
@@ -83,7 +84,10 @@ export class NetworkController {
     },
   })
   @ApiCreatedResponse({ type: UploadNetworkResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid graph definition' })
+  @ApiBadRequestResponse({
+    description: 'Invalid graph definition',
+    type: ErrorResponseDto,
+  })
   async upload(
     @Body() dto: UploadNetworkDto,
   ): Promise<UploadNetworkResponseDto> {
@@ -94,8 +98,14 @@ export class NetworkController {
   @ApiOperation({ summary: 'List the nodes of a stored graph' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: NetworkNodesResponseDto })
-  @ApiBadRequestResponse({ description: 'Id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Graph not found or evicted' })
+  @ApiBadRequestResponse({
+    description: 'Id is not a UUID',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Graph not found or evicted',
+    type: ErrorResponseDto,
+  })
   async getNodes(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<NetworkNodesResponseDto> {

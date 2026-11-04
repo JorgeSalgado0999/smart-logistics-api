@@ -20,7 +20,8 @@
     "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:debug": "node --experimental-vm-modules --inspect-brk node_modules/jest/bin/jest.js --runInBand",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
-    "test:e2e:mongo": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e-mongo.json --runInBand"
+    "test:e2e:mongo": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e-mongo.json --runInBand",
+    "test:docs": "nest build && node scripts/check-openapi.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

@@ -18,8 +18,10 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponseDto } from '../common/dto/error-response.dto.js';
 import { OptimizeRouteResponseDto } from './dto/optimize-route-response.dto.js';
 import { OptimizeRouteDto } from './dto/optimize-route.dto.js';
+import { STATUS_EXAMPLES } from './dto/route-status.examples.js';
 import { RouteStatusResponseDto } from './dto/route-status-response.dto.js';
 import type { RouteJob } from './jobs/route-job.types.js';
 import { RouteService } from './route.service.js';
@@ -64,8 +66,14 @@ export class RouteController {
     },
   })
   @ApiAcceptedResponse({ type: OptimizeRouteResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid request body or graph id' })
-  @ApiNotFoundResponse({ description: 'Graph not found or evicted' })
+  @ApiBadRequestResponse({
+    description: 'Invalid request body or graph id',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Graph not found or evicted',
+    type: ErrorResponseDto,
+  })
   async optimize(
     @Param('id', UUID_V4) graphId: string,
     @Body() dto: OptimizeRouteDto,
@@ -87,9 +95,20 @@ export class RouteController {
   @Get('status/:jobId')
   @ApiOperation({ summary: 'Get the status and result of a route job' })
   @ApiParam({ name: 'jobId', format: 'uuid' })
-  @ApiOkResponse({ type: RouteStatusResponseDto })
-  @ApiBadRequestResponse({ description: 'Job id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Job not found or expired' })
+  @ApiOkResponse({
+    type: RouteStatusResponseDto,
+    description:
+      'COMPLETED jobs carry `result`; FAILED jobs carry `error` with a code.',
+    examples: STATUS_EXAMPLES,
+  })
+  @ApiBadRequestResponse({
+    description: 'Job id is not a UUID',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Job not found or expired',
+    type: ErrorResponseDto,
+  })
   async status(
     @Param('jobId', UUID_V4) jobId: string,
   ): Promise<RouteStatusResponseDto> {
