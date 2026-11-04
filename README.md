@@ -132,4 +132,4 @@ Jest runs with `--experimental-vm-modules` because the project is ESM, so each r
 - [x] Vehicle constraints and time-dependent edge costs
 - [x] Multi-stop routing through waypoints
 - [x] Async jobs: `POST /route/optimize/{id}`, `GET /route/status/{jobId}`
-- [ ] Error handling in job results
+- [x] Error handling in job results

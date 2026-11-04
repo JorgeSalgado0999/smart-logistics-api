@@ -180,17 +180,59 @@ describe(`Route (e2e, ${storage} storage)`, () => {
     });
   });
 
-  it('fails the job when the destination is unreachable', async () => {
-    const job = await run(body({ originNodeId: 'E', destinationNodeId: 'A' }));
-
-    expect(job).toMatchObject({
-      status: 'FAILED',
-      error: {
+  it.each([
+    [
+      'UNREACHABLE when no path exists',
+      body({ originNodeId: 'E', destinationNodeId: 'A' }),
+      {
         code: 'UNREACHABLE',
         message: 'No route from E to A (leg 1 of 1)',
+        failedLeg: { index: 0, from: 'E', to: 'A' },
       },
-    });
+    ],
+    [
+      'INVALID_NODE for unknown node ids',
+      body({ originNodeId: 'X', waypoints: ['Y'] }),
+      {
+        code: 'INVALID_NODE',
+        message: 'Unknown node(s): X, Y',
+        unknownNodes: ['X', 'Y'],
+      },
+    ],
+    [
+      'CONSTRAINTS_BLOCK_ROUTE for a vehicle over every weight limit',
+      body({
+        vehicleProfile: { type: 'truck', weight: 9000, hazardous: false },
+      }),
+      {
+        code: 'CONSTRAINTS_BLOCK_ROUTE',
+        message:
+          "Vehicle can't reach E from A: blocked by weight limit (leg 1 of 1)",
+        failedLeg: { index: 0, from: 'A', to: 'E' },
+        blockedBy: ['WEIGHT'],
+      },
+    ],
+    [
+      'CONSTRAINTS_BLOCK_ROUTE for a hazardous load through waypoint C',
+      body({
+        waypoints: ['C'],
+        vehicleProfile: { type: 'truck', weight: 3000, hazardous: true },
+      }),
+      {
+        code: 'CONSTRAINTS_BLOCK_ROUTE',
+        message:
+          "Vehicle can't reach C from A: blocked by hazardous materials restriction (leg 1 of 2)",
+        failedLeg: { index: 0, from: 'A', to: 'C' },
+        blockedBy: ['HAZARDOUS'],
+      },
+    ],
+  ])('fails the job with %s', async (_name, payload, error) => {
+    const job = await run(payload);
+
+    expect(job.status).toBe('FAILED');
+    expect(job.error).toEqual(error);
     expect(job.result).toBeUndefined();
+    expect(job.completedAt).toEqual(expect.any(String));
   });
 
   it('returns 404 for an unknown graph', async () => {

@@ -101,29 +101,162 @@ describe('planRoute', () => {
   });
 
   it('returns UNREACHABLE naming the failed leg', () => {
+    // C -> B has no route at all: edges are directed.
     expect(planRoute(README_GRAPH, request({ waypoints: ['C', 'B'] }))).toEqual(
       {
         ok: false,
         error: {
           code: 'UNREACHABLE',
           message: 'No route from C to B (leg 2 of 3)',
+          failedLeg: { index: 1, from: 'C', to: 'B' },
         },
       },
     );
   });
 
-  it('returns UNREACHABLE when constraints block every route', () => {
-    const plan = planRoute(
-      README_GRAPH,
-      request({ vehicle: { type: 'truck', weight: 9000, hazardous: false } }),
-    );
+  describe('INVALID_NODE', () => {
+    it.each([
+      ['origin', { originNodeId: 'X' }, ['X']],
+      ['destination', { destinationNodeId: 'Z' }, ['Z']],
+      ['waypoint', { waypoints: ['B', 'Q'] }, ['Q']],
+      [
+        'several, in request order without repeats',
+        { originNodeId: 'X', waypoints: ['Y', 'X'], destinationNodeId: 'Y' },
+        ['X', 'Y'],
+      ],
+      ['a case mismatch', { destinationNodeId: 'e' }, ['e']],
+    ])('reports an unknown %s', (_name, overrides, unknownNodes) => {
+      expect(planRoute(README_GRAPH, request(overrides))).toEqual({
+        ok: false,
+        error: {
+          code: 'INVALID_NODE',
+          message: `Unknown node(s): ${unknownNodes.join(', ')}`,
+          unknownNodes,
+        },
+      });
+    });
 
-    expect(plan).toEqual({
-      ok: false,
-      error: {
-        code: 'UNREACHABLE',
-        message: 'No route from A to E (leg 1 of 1)',
-      },
+    it('is checked before routing, even when the route would also fail', () => {
+      const plan = planRoute(
+        README_GRAPH,
+        request({ originNodeId: 'E', destinationNodeId: 'X' }),
+      );
+
+      expect(plan.ok || plan.error.code).toBe('INVALID_NODE');
+    });
+  });
+
+  describe('CONSTRAINTS_BLOCK_ROUTE', () => {
+    it('blames the weight limit for a vehicle too heavy for D -> E', () => {
+      const plan = planRoute(
+        README_GRAPH,
+        request({ vehicle: { type: 'truck', weight: 9000, hazardous: false } }),
+      );
+
+      expect(plan).toEqual({
+        ok: false,
+        error: {
+          code: 'CONSTRAINTS_BLOCK_ROUTE',
+          message:
+            "Vehicle can't reach E from A: blocked by weight limit (leg 1 of 1)",
+          failedLeg: { index: 0, from: 'A', to: 'E' },
+          blockedBy: ['WEIGHT'],
+        },
+      });
+    });
+
+    it('blames the hazardous restriction when only noHazardous edges lead on', () => {
+      // A hazardous truck can't reach waypoint C: A -> C is noHazardous.
+      const plan = planRoute(
+        README_GRAPH,
+        request({
+          waypoints: ['C'],
+          vehicle: { type: 'truck', weight: 3000, hazardous: true },
+        }),
+      );
+
+      expect(plan).toEqual({
+        ok: false,
+        error: {
+          code: 'CONSTRAINTS_BLOCK_ROUTE',
+          message:
+            "Vehicle can't reach C from A: blocked by hazardous materials restriction (leg 1 of 2)",
+          failedLeg: { index: 0, from: 'A', to: 'C' },
+          blockedBy: ['HAZARDOUS'],
+        },
+      });
+    });
+
+    it('lists both rules when the only edge breaks both', () => {
+      // A -> C: maxWeight 5000 and noHazardous.
+      const plan = planRoute(
+        README_GRAPH,
+        request({
+          destinationNodeId: 'C',
+          vehicle: { type: 'truck', weight: 6000, hazardous: true },
+        }),
+      );
+
+      expect(plan.ok || plan.error).toMatchObject({
+        code: 'CONSTRAINTS_BLOCK_ROUTE',
+        blockedBy: ['WEIGHT', 'HAZARDOUS'],
+        message:
+          "Vehicle can't reach C from A: blocked by weight limit and hazardous materials restriction (leg 1 of 1)",
+      });
+    });
+
+    it('lists both rules when each alone would open a different route', () => {
+      const graph: Graph = {
+        ...README_GRAPH,
+        nodes: [{ id: 'S' }, { id: 'M' }, { id: 'N' }, { id: 'T' }],
+        edges: [
+          edge('S', 'M', 1, { maxWeight: 1000 }),
+          edge('M', 'T', 1),
+          edge('S', 'N', 1, { noHazardous: true }),
+          edge('N', 'T', 1),
+        ],
+      };
+      const plan = planRoute(graph, {
+        ...request(),
+        originNodeId: 'S',
+        destinationNodeId: 'T',
+        vehicle: { type: 'truck', weight: 5000, hazardous: true },
+      });
+
+      expect(plan.ok || plan.error).toMatchObject({
+        code: 'CONSTRAINTS_BLOCK_ROUTE',
+        blockedBy: ['WEIGHT', 'HAZARDOUS'],
+      });
+    });
+
+    it('reports the later leg that fails', () => {
+      // Leg A -> B is fine; B -> E needs D -> E (maxWeight 8000).
+      const plan = planRoute(
+        README_GRAPH,
+        request({
+          waypoints: ['B'],
+          vehicle: { type: 'truck', weight: 9000, hazardous: false },
+        }),
+      );
+
+      expect(plan.ok || plan.error).toMatchObject({
+        code: 'CONSTRAINTS_BLOCK_ROUTE',
+        failedLeg: { index: 1, from: 'B', to: 'E' },
+        blockedBy: ['WEIGHT'],
+      });
+    });
+
+    it('is never caused by peak hours', () => {
+      const plan = planRoute(
+        README_GRAPH,
+        request({
+          originNodeId: 'E',
+          destinationNodeId: 'A',
+          departureTime: '08:00',
+        }),
+      );
+
+      expect(plan.ok || plan.error.code).toBe('UNREACHABLE');
     });
   });
 

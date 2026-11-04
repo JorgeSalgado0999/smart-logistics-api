@@ -1,4 +1,9 @@
-import type { RouteErrorCode, RouteResult } from '../route-planner.js';
+import {
+  ROUTE_ERROR_CODES,
+  type RouteError,
+  type RouteErrorCode,
+  type RouteResult,
+} from '../route-planner.js';
 
 export const JOB_STATUSES = [
   'PENDING',
@@ -9,9 +14,9 @@ export const JOB_STATUSES = [
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export type JobErrorCode = RouteErrorCode | 'INTERNAL_ERROR';
-/** For Swagger enums. `satisfies` keeps it in sync with JobErrorCode. */
+/** For Swagger enums. */
 export const JOB_ERROR_CODES = [
-  'UNREACHABLE',
+  ...ROUTE_ERROR_CODES,
   'INTERNAL_ERROR',
 ] as const satisfies readonly JobErrorCode[];
 
@@ -20,10 +25,9 @@ export interface JobResult extends RouteResult {
   readonly durationMs: number;
 }
 
-export interface JobError {
-  readonly code: JobErrorCode;
-  readonly message: string;
-}
+/** Route errors carry extra fields; INTERNAL_ERROR never exposes details. */
+export type JobError =
+  RouteError | { readonly code: 'INTERNAL_ERROR'; readonly message: string };
 
 /**
  * A route calculation job. Records are replaced, never mutated: each status

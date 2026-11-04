@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  BLOCKING_CONSTRAINTS,
+  type BlockingConstraint,
+} from '../route-planner.js';
+import {
   JOB_ERROR_CODES,
   JOB_STATUSES,
   type JobErrorCode,
@@ -43,12 +47,48 @@ export class RouteResultDto {
   legs: RouteLegDto[];
 }
 
+export class FailedLegDto {
+  /**
+   * 0-based leg number: 0 is origin -> first stop.
+   * @example 0
+   */
+  index: number;
+  /** @example 'A' */
+  from: string;
+  /** @example 'E' */
+  to: string;
+}
+
 export class RouteErrorDto {
-  @ApiProperty({ enum: JOB_ERROR_CODES, example: 'UNREACHABLE' })
+  /**
+   * INVALID_NODE: a requested node isn't in the graph.
+   * UNREACHABLE: no path exists for a leg, whatever the vehicle.
+   * CONSTRAINTS_BLOCK_ROUTE: a path exists, but not for this vehicle.
+   * INTERNAL_ERROR: unexpected failure.
+   */
+  @ApiProperty({ enum: JOB_ERROR_CODES, example: 'CONSTRAINTS_BLOCK_ROUTE' })
   code: JobErrorCode;
 
-  /** @example 'No route from A to E (leg 1 of 1)' */
+  /** @example "Vehicle can't reach E from A: blocked by weight limit (leg 1 of 1)" */
   message: string;
+
+  /**
+   * INVALID_NODE only: unknown ids, in request order.
+   * @example ['X']
+   */
+  unknownNodes?: string[];
+
+  /** UNREACHABLE and CONSTRAINTS_BLOCK_ROUTE only. */
+  @ApiPropertyOptional({ type: FailedLegDto })
+  failedLeg?: FailedLegDto;
+
+  /** CONSTRAINTS_BLOCK_ROUTE only: the vehicle rules that block the leg. */
+  @ApiPropertyOptional({
+    enum: BLOCKING_CONSTRAINTS,
+    isArray: true,
+    example: ['WEIGHT'],
+  })
+  blockedBy?: BlockingConstraint[];
 }
 
 export class RouteStatusResponseDto {
