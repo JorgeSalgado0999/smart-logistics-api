@@ -40,7 +40,7 @@ Jest runs with `--experimental-vm-modules` because the project is ESM, so each r
 - [x] Swagger UI at `/docs`
 - [x] Global request validation (`class-validator`) and Swagger CLI plugin for DTO schemas
 - [x] Network endpoints: `POST /network/upload`, `GET /network/nodes/{id}`
-- [ ] Dijkstra's algorithm with unit tests
+- [x] Dijkstra's algorithm with unit tests
 - [ ] Vehicle constraints and time-dependent edge costs
 - [ ] Multi-stop routing through waypoints
 - [ ] Async jobs: `POST /route/optimize/{id}`, `GET /route/status/{jobId}`
