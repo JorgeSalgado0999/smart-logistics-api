@@ -21,6 +21,59 @@ The server listens on `PORT`, or 3000 by default.
 - Swagger UI: http://localhost:3000/docs
 - OpenAPI JSON: http://localhost:3000/docs-json
 
+## API
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `POST` | `/network/upload` | Store a graph of directed edges. Returns `201 { id }` |
+| `GET` | `/network/nodes/{id}` | List a graph's nodes |
+| `POST` | `/route/optimize/{id}` | Start a route calculation. Returns `202 { jobId }` right away |
+| `GET` | `/route/status/{jobId}` | Job status, plus the route once `COMPLETED` or the error once `FAILED` |
+| `GET` | `/docs` | Swagger UI |
+
+### Route requests
+
+```json
+{
+  "originNodeId": "A",
+  "destinationNodeId": "E",
+  "waypoints": ["C"],
+  "vehicleProfile": { "type": "truck", "weight": 4000, "hazardous": false },
+  "departureTime": "08:00"
+}
+```
+
+- `vehicleProfile` and `departureTime` are required, so the same request always gives the same route. `waypoints` is optional.
+- **Constraints:** an edge is skipped when the vehicle's weight is over its `maxWeight` (equal is allowed), or when the vehicle is hazardous and the edge is `noHazardous`.
+- **Peak hours:** departing 07:00-09:00 or 17:00-19:00 (start included, end excluded) multiplies every edge's cost by its `trafficMultiplier`. Peak is decided by the departure time only; the clock doesn't advance along the route, because edge costs have no time unit.
+- **Waypoints** are visited in the given order. Each leg is solved with Dijkstra, and the legs are joined into one path.
+
+### Async jobs
+
+1. `POST /route/optimize/{id}` checks the body and that the graph exists (`404` if not), creates a `PENDING` job, and returns `202`.
+2. The job runs on a later turn of the event loop (`setImmediate`): `PROCESSING`, then `COMPLETED` or `FAILED`.
+3. Poll `GET /route/status/{jobId}`:
+
+```json
+{
+  "jobId": "…", "status": "COMPLETED",
+  "createdAt": "…", "startedAt": "…", "completedAt": "…",
+  "result": {
+    "graphId": "…", "totalCost": 39.5, "path": ["A", "C", "D", "E"], "durationMs": 0.86,
+    "legs": [
+      { "from": "A", "to": "C", "path": ["A", "C"], "cost": 22.5 },
+      { "from": "C", "to": "E", "path": ["C", "D", "E"], "cost": 17 }
+    ]
+  }
+}
+```
+
+- A failed job has `error: { code, message }` instead of `result`, e.g. `UNREACHABLE` with the leg that has no route. Unexpected errors give `INTERNAL_ERROR` without internal details.
+- `totalCost` is rounded to 6 decimals to remove float noise.
+- A job keeps the graph it was submitted with, so it still runs if the graph is evicted meanwhile.
+- Jobs are kept in memory, whatever `STORAGE` says. Finished jobs expire 1 hour after completing; the store keeps at most 10,000 jobs and drops the oldest finished ones first. Unfinished jobs are never dropped.
+- Routing runs on the main thread. A 90,000-node grid takes about 0.2 s; uploads are capped at 100 kb by the default body limit, so real graphs are far smaller. The scheduler sits behind an interface, so a worker-thread version could replace it.
+
 ## Configuration
 
 Settings come from environment variables or a `.env` file (copy [.env.example](.env.example)). All are optional. Invalid values stop the app at startup with a message listing every problem.
@@ -78,5 +131,5 @@ Jest runs with `--experimental-vm-modules` because the project is ESM, so each r
 - [x] MongoDB storage (optional, `STORAGE=mongo`)
 - [x] Vehicle constraints and time-dependent edge costs
 - [x] Multi-stop routing through waypoints
-- [ ] Async jobs: `POST /route/optimize/{id}`, `GET /route/status/{jobId}`
+- [x] Async jobs: `POST /route/optimize/{id}`, `GET /route/status/{jobId}`
 - [ ] Error handling in job results

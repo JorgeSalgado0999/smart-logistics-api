@@ -3,6 +3,7 @@ import { ConditionalModule, ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.validation.js';
 import { MongoModule } from './database/mongo.module.js';
 import { NetworkModule } from './network/network.module.js';
+import { RoutingModule } from './routing/routing.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NetworkModule } from './network/network.module.js';
       (env) => env.STORAGE?.trim() === 'mongo',
     ),
     NetworkModule,
+    RoutingModule,
   ],
 })
 export class AppModule {}
