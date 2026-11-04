@@ -1,15 +1,14 @@
 {
   "name": "smart-logistics-api",
   "version": "0.0.1",
-  "description": "",
+  "description": "REST API that finds optimal routes on a logistics network with Dijkstra, vehicle constraints, peak-hour costs and async jobs",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "build": "nest build",
-    "deploy": "nest deploy",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.mjs\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -21,7 +20,8 @@
     "test:debug": "node --experimental-vm-modules --inspect-brk node_modules/jest/bin/jest.js --runInBand",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "test:e2e:mongo": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e-mongo.json --runInBand",
-    "test:docs": "nest build && node scripts/check-openapi.mjs"
+    "test:docs": "nest build && node scripts/check-openapi.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
-    "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
