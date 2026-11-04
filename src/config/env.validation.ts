@@ -1,10 +1,13 @@
-export const STORAGE_KINDS = ['memory'] as const;
+export const STORAGE_KINDS = ['memory', 'mongo'] as const;
 export type StorageKind = (typeof STORAGE_KINDS)[number];
 
 /** Environment after validation and defaults. */
 export interface EnvConfig {
   STORAGE: StorageKind;
   PORT: number;
+  /** Required when STORAGE=mongo. */
+  MONGO_URI?: string;
+  MONGO_DB: string;
 }
 
 /**
@@ -27,10 +30,30 @@ export function validateEnv(raw: Record<string, unknown>): EnvConfig {
     errors.push(`PORT must be an integer from 1 to 65535 (got "${portText}")`);
   }
 
+  const mongoUri = readString(raw.MONGO_URI);
+  if (storage === 'mongo' && mongoUri === undefined) {
+    errors.push('MONGO_URI is required when STORAGE=mongo');
+  }
+  if (mongoUri !== undefined && !/^mongodb(\+srv)?:\/\//.test(mongoUri)) {
+    errors.push('MONGO_URI must start with mongodb:// or mongodb+srv://');
+  }
+
+  const mongoDb = readString(raw.MONGO_DB) ?? 'smart_logistics';
+  if (!/^[A-Za-z0-9_-]{1,63}$/.test(mongoDb)) {
+    errors.push(
+      `MONGO_DB must be 1-63 letters, digits, _ or - (got "${mongoDb}")`,
+    );
+  }
+
   if (errors.length > 0) {
     throw new Error(`Invalid environment:\n- ${errors.join('\n- ')}`);
   }
-  return { STORAGE: storage as StorageKind, PORT: port };
+  return {
+    STORAGE: storage as StorageKind,
+    PORT: port,
+    MONGO_URI: mongoUri,
+    MONGO_DB: mongoDb,
+  };
 }
 
 /** Trimmed string, or undefined when missing or blank. */
